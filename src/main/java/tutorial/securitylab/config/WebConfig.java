@@ -16,7 +16,7 @@ public class WebConfig extends WebSecurityConfigurerAdapter {
                 .csrf(c->c
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
                 .authorizeRequests(a -> a
-                        .antMatchers("/", "/error", "/webjars/**","/api/**").permitAll()
+                        .antMatchers("/**", "/error", "/webjars/**","/api/**").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
