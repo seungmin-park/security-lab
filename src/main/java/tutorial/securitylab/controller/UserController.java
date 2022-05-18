@@ -1,26 +1,38 @@
 package tutorial.securitylab.controller;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.minidev.json.JSONObject;
+import net.minidev.json.parser.JSONParser;
+import net.minidev.json.parser.ParseException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
+import tutorial.securitylab.domain.Member;
+import tutorial.securitylab.repository.MemberRepository;
 
-import java.util.Map;
+import java.util.Collections;
 
 @Slf4j
 @RestController
+@RequiredArgsConstructor
 public class UserController {
+
+    private final MemberRepository memberRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Value("${spring.security.oauth2.client.registration.github.client-id}")
     private String clientId;
 
     @Value("${spring.security.oauth2.client.registration.github.client-secret}")
     private String clientSecret;
+
+    @Value("${spring.security.oauth2.client.registration.github.redirect-uri}")
+    private String redirectUrl;
 
     @GetMapping("/api/auth/github")
     public String git() {
@@ -29,13 +41,13 @@ public class UserController {
         sb.append("https://github.com/login/oauth/authorize?client_id=");
         sb.append(clientId);
         sb.append("&scope=user");
-        sb.append("&redirect_uri=http://localhost:8080/test");
+        sb.append("&redirect_uri=");
+        sb.append(redirectUrl);
         return sb.toString();
     }
-    }
 
-    @GetMapping("/test")
-    public String ttttt(@RequestParam String code){
+    @GetMapping("/api/auth/callback/github")
+    public Member testMethod(@RequestParam String code) throws ParseException {
         log.info("method start");
         log.info("code={}", code);
 
@@ -57,12 +69,30 @@ public class UserController {
 
         httpHeaders.clear();
 
-        httpHeaders.add("Authorization","token "+ access_token);
+        httpHeaders.add("Authorization", "token " + access_token);
         HttpEntity<Object> http = new HttpEntity<>(httpHeaders);
         ResponseEntity<String> response = restTemplate.exchange("https://api.github.com/user", HttpMethod.GET, http, String.class);
-        String body = response.getBody();
+        JSONParser jsonParser = new JSONParser();
+        Object parse = jsonParser.parse(response.getBody());
+        log.info(response.getBody());
+        JSONObject object = (JSONObject) parse;
 
-        log.info("body={}",body);
-        return body;
+        String login = (String) object.get("login");
+        String password = (String) object.get("node_id");
+        Member member = Member
+                .builder()
+                .memberName(login)
+                .username(login)
+                .password(passwordEncoder.encode(password))
+                .roles(Collections.singletonList("ROLE_USER"))
+                .build();
+
+        memberRepository.save(member);
+        return member;
+    }
+
+    @GetMapping("/success")
+    public String ok() {
+        return "ok";
     }
 }
