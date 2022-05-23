@@ -23,7 +23,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class JwtTokenProvider {
 
-    @Value("${logging.jwt.secret}")
+    @Value("${spring.jwt.secret}")
     private String secretKey;
 
     private long tokenValidatedMillSecond = 100L * 60 * 60; // 토근 유효 시간: 1시간

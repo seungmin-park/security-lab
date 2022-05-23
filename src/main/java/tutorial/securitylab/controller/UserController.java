@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
+import tutorial.securitylab.config.JwtTokenProvider;
 import tutorial.securitylab.domain.Member;
 import tutorial.securitylab.repository.MemberRepository;
 
@@ -23,6 +24,8 @@ import java.util.Collections;
 public class UserController {
 
     private final MemberRepository memberRepository;
+    private final JwtTokenProvider jwtTokenProvider;
+
     private final PasswordEncoder passwordEncoder;
 
     @Value("${spring.security.oauth2.client.registration.github.client-id}")
@@ -47,7 +50,7 @@ public class UserController {
     }
 
     @GetMapping("/api/auth/callback/github")
-    public Member testMethod(@RequestParam String code) throws ParseException {
+    public String testMethod(@RequestParam String code) throws ParseException {
         log.info("method start");
         log.info("code={}", code);
 
@@ -88,7 +91,9 @@ public class UserController {
                 .build();
 
         memberRepository.save(member);
-        return member;
+
+        String token = jwtTokenProvider.generateToken(String.valueOf(member.getMemberId()), member.getRoles());
+        return token;
     }
 
     @GetMapping("/success")
